@@ -27,11 +27,13 @@ func main() {
 	s := clientselector.NewMultiClientSelector(servers, rpcx.RoundRobin, 10*time.Second)
 	client := rpcx.NewClient(s)
 	client.FailMode = rpcx.Failover
+	defer client.Close()
 
 	for {
 		callServer(client)
 		time.Sleep(time.Second)
 	}
+
 }
 
 func callServer(client *rpcx.Client) {

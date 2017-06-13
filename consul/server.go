@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/smallnest/rpcx"
 	"github.com/smallnest/rpcx/plugin"
@@ -25,10 +26,15 @@ func (t *Arith) Mul(ctx context.Context, args *Args, reply *Reply) error {
 
 func main() {
 	server := rpcx.NewServer()
-	server.RegisterName("Arith", new(Arith))
-
-	p := plugin.NewCompressionPlugin(rpcx.CompressSnappy)
+	p := &plugin.ConsulRegisterPlugin{
+		ServiceAddress: "tcp@127.0.0.1:8972",
+		ConsulAddress:  "localhost:8500",
+		UpdateInterval: time.Second,
+	}
+	p.Start()
 	server.PluginContainer.Add(p)
+
+	server.RegisterName("Arith", new(Arith), "weight=5&group=beijing")
 
 	server.Serve("tcp", "127.0.0.1:8972")
 }
