@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/smallnest/pool"
 	"github.com/smallnest/rpcx"
 	"github.com/smallnest/rpcx/clientselector"
 	"github.com/smallnest/rpcx/log"
@@ -27,9 +28,8 @@ func main() {
 
 	s := clientselector.NewMultiClientSelector(servers, rpcx.RandomSelect, 10*time.Second)
 
-	clientPool := &pool{
-		max: 100,
-		New: func() *rpcx.Client {
+	clientPool := &pool.Pool{
+		New: func() interface{} {
 			return rpcx.NewClient(s)
 		},
 	}
@@ -42,12 +42,17 @@ func main() {
 	}
 
 	sg.Wait()
-	clientPool.Close()
 
+	clientPool.Range(func(v interface{}) bool {
+		c := v.(*rpcx.Client)
+		c.Close()
+		return true
+	})
+	clientPool.Reset()
 }
 
-func callServer(sg *sync.WaitGroup, clientPool *pool, s rpcx.ClientSelector) {
-	client := clientPool.Get()
+func callServer(sg *sync.WaitGroup, clientPool *pool.Pool, s rpcx.ClientSelector) {
+	client := clientPool.Get().(*rpcx.Client)
 
 	args := &Args{7, 8}
 	var reply Reply
@@ -60,54 +65,4 @@ func callServer(sg *sync.WaitGroup, clientPool *pool, s rpcx.ClientSelector) {
 
 	clientPool.Put(client)
 	sg.Done()
-}
-
-// client Pool
-
-type pool struct {
-	max     int
-	clients []*rpcx.Client
-	sync.Mutex
-	size int
-	New  func() *rpcx.Client
-}
-
-func (p *pool) Get() (c *rpcx.Client) {
-	p.Lock()
-	defer p.Unlock()
-
-	//always return a client
-	if p.size < 1 {
-		return p.New()
-	}
-
-	c = p.clients[0]
-	p.clients = p.clients[1:]
-	p.size--
-	return c
-}
-
-func (p *pool) Put(c *rpcx.Client) {
-	p.Lock()
-	defer p.Unlock()
-
-	if p.size >= p.max {
-		c.Close()
-		return
-	}
-
-	p.clients = append(p.clients, c)
-	p.size++
-}
-
-func (p *pool) Close() {
-	p.Lock()
-	defer p.Unlock()
-
-	for _, c := range p.clients {
-		c.Close()
-	}
-
-	p.clients = p.clients[:0]
-	p.size = 0
 }
