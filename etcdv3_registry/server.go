@@ -42,7 +42,6 @@ func main() {
 		EtcdServers:         []string{*e},
 		BasePath:            "/rpcx",
 		Metrics:             metrics.NewRegistry(),
-		Services:            make([]string, 0),
 		UpdateIntervalInSec: 60,
 	}
 	rplugin.Start()
