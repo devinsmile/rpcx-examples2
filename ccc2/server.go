@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+
 	"time"
 
 	"github.com/smallnest/rpcx"
-	"github.com/smallnest/rpcx/codec"
 	"github.com/smallnest/rpcx/plugin"
 )
 
@@ -27,11 +27,11 @@ func (t *Arith) Mul(ctx context.Context, args *Args, reply *Reply) error {
 
 func main() {
 	server := rpcx.NewServer()
-	server.ServerCodecFunc = codec.NewGobServerCodec
 	server.RegisterName("Arith", new(Arith))
+	server.Timeout = 1 * time.Second
 
-	p := plugin.NewRateLimitingPlugin(time.Second, 1000)
-	server.PluginContainer.Add(p)
+	compressionPlugin := plugin.NewCompressionPlugin(rpcx.CompressSnappy)
+	server.PluginContainer.Add(compressionPlugin)
 
 	server.Serve("tcp", "127.0.0.1:8972")
 }

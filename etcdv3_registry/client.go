@@ -7,6 +7,7 @@ import (
 
 	"github.com/smallnest/rpcx"
 	"github.com/smallnest/rpcx/clientselector"
+	"github.com/smallnest/rpcx/codec"
 	"github.com/smallnest/rpcx/log"
 )
 
@@ -28,11 +29,12 @@ func main() {
 	//basePath = "/rpcx/" + serviceName
 	s := clientselector.NewEtcdV3ClientSelector([]string{*e}, "/rpcx/"+*n, time.Minute, rpcx.RandomSelect, time.Minute)
 	client := rpcx.NewClient(s)
+	client.ClientCodecFunc = codec.NewGobClientCodec
 
 	args := &Args{7, 8}
 	var reply Reply
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1; i++ {
 		err := client.Call(context.Background(), *n+".Mul", args, &reply)
 		if err != nil {
 			log.Infof("error for "+*n+": %d*%d, %v", args.A, args.B, err)

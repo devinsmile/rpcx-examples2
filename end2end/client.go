@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/smallnest/rpcx"
+	"github.com/smallnest/rpcx/codec"
 	"github.com/smallnest/rpcx/log"
 )
 
@@ -20,6 +21,7 @@ type Reply struct {
 func main() {
 	s := &rpcx.DirectClientSelector{Network: "tcp", Address: "127.0.0.1:8972", DialTimeout: 10 * time.Second}
 	client := rpcx.NewClient(s)
+	client.ClientCodecFunc = codec.NewGobClientCodec
 
 	args := &Args{7, 8}
 	var reply Reply

@@ -6,6 +6,7 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"github.com/smallnest/rpcx"
+	"github.com/smallnest/rpcx/codec"
 	"github.com/smallnest/rpcx/plugin"
 )
 
@@ -37,6 +38,8 @@ func main() {
 	flag.Parse()
 
 	server := rpcx.NewServer()
+	server.ServerCodecFunc = codec.NewGobServerCodec
+
 	rplugin := &plugin.EtcdV3RegisterPlugin{
 		ServiceAddress:      "tcp@" + *addr,
 		EtcdServers:         []string{*e},
@@ -46,7 +49,6 @@ func main() {
 	}
 	rplugin.Start()
 	server.PluginContainer.Add(rplugin)
-	server.PluginContainer.Add(plugin.NewMetricsPlugin())
 	server.RegisterName(*n, new(Arith), "weight=1&m=devops")
 	server.Serve("tcp", *addr)
 }
